@@ -58,7 +58,7 @@ jobs:
       - name: Prepair build
         run: |
           cd ~/android/lineage
-          source build/envsetup.sh
+          source /home/runner/work/android/lineage/build/envsetup.sh
           breakfast i9300
           
       - name: Extracting
