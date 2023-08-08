@@ -1,0 +1,84 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "lineage-20.0" branch
+  push:
+    branches: [ "lineage-20.0" ]
+  pull_request:
+    branches: [ "lineage-20.0" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Runs a single command using the runners shell
+      - name: Installing depencies
+        run: sudo apt install bc bison adb fastboot build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev python3 lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
+      - name: Checking Python version
+        run:  python --version
+      - name: mkdir
+        run: mkdir -p ~/bin
+      - name: mkdir
+        run: mkdir -p ~/bin
+      - name: Install the repo command
+        run: curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo && chmod a+x ~/bin/repo
+      - name: PATH="$HOME/bin:$PATH"
+        run: export PATH="$HOME/bin:$PATH"
+      - name: Configure git
+        run: git config --global user.email "frauguelle@gmail.com" && git config --global user.name "user0-tb"
+      - name: git lfs
+        run: git lfs install
+      - name: ccache
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_EXEC=/usr/bin/ccache
+          ccache -M 150G
+          ccache -o compression=true
+
+      - name: cloning
+        run: |
+          cd ~/android/lineage
+          repo init -u https://github.com/LineageOS/android.git -b lineage-20.0 --git-lfs
+          repo sync
+
+      - name: Prepair build
+        run: |
+          cd ~/android/lineage
+          source build/envsetup.sh
+          breakfast i9300
+          
+      - name: Extracting
+        run: |
+          wget https://ava3.androidfilehost.com/dl/q0zS29rj_PHFe8y9TNp82w/1691600079/8889791610682894044/lineage-17.1-20200717-UNOFFICIAL-i9300.zip?
+          mkdir ~/android/system_dump/
+          unzip lineage-17.1-20200717-UNOFFICIAL-i9300.zip system.transfer.list system.new.dat* -d ~/android/system_dump/
+          cd ~/android/system_dump/
+          sudo apt-get install brotli
+          brotli --decompress --output=system.new.dat system.new.dat.br
+          git clone https://github.com/xpirt/sdat2img
+          python sdat2img/sdat2img.py system.transfer.list system.new.dat system.img
+          mkdir system/
+          sudo mount system.img system/
+      - name: Contiune  build prepair
+        run: |
+          ./extract-files.sh ~/android/system_dump/
+      - name: Build!
+        run: |
+          croot
+          brunch i9300
+          
+          
